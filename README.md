@@ -1,1 +1,1 @@
-"# EEG-MMID-Benchmarking" 
+# EEG-MMID-Benchmarking
