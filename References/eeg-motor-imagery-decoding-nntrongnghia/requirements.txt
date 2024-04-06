@@ -1,0 +1,10 @@
+matplotlib
+ml_collections
+mne
+numpy
+pandas
+pytorch_lightning
+scikit_learn
+scipy
+seaborn
+ray[tune]
