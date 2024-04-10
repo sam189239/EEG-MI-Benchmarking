@@ -93,7 +93,7 @@ def build_convlstm_classifier(input_shape, num_layers=1):
     classifier = Sequential()
     
     # First ConvLSTM1D Layer
-    classifier.add(Reshape((-1, 64, 1), input_shape=input_shape))
+    classifier.add(Reshape((-1, 64, 1), input_shape=input_shape)) ## TODO: generalize reshape
     # classifier.add(ConvLSTM2D(32, kernel_size=(3, 1), activation='relu', input_shape=(None, 64)))
     
     # Intermediate ConvLSTM1D Layers
