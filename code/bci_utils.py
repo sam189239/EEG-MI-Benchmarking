@@ -3,6 +3,7 @@ import mne
 import numpy as np
 import pandas as pd
 import torch
+import os
 import braindecode
 import matplotlib.pyplot as plt
 from braindecode.models import EEGNetv4, EEGConformer, ATCNet, EEGITNet, EEGInception
