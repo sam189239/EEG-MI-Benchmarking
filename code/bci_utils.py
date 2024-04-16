@@ -11,6 +11,7 @@ from braindecode.datasets import MOABBDataset
 from braindecode.preprocessing import create_windows_from_events
 from braindecode.preprocessing import exponential_moving_standardize, preprocess, Preprocessor
 
+import scipy.io
 import pywt
 from mne.decoding import CSP # Common Spatial Pattern Filtering
 from sklearn.preprocessing import OneHotEncoder
@@ -119,7 +120,7 @@ def build_convlstm_classifier(input_shape, num_layers=1):
 ## RESULTS
 
 def print_results(results):
-    res_df = pd.DataFrame(results)
+    results_df = pd.DataFrame(results)
 
     avg = {'Accuracy':[np.mean(results['Accuracy'])],
            'F1':[np.mean(results['F1'])],
@@ -127,14 +128,25 @@ def print_results(results):
            'Recall':[np.mean(results['Recall'])]}
 
     Avg = pd.DataFrame(avg)
+    results_df = pd.concat([results_df, Avg])
 
-    res_df = pd.concat([res_df,Avg])
-    index_vals = [f"F{i+1}" for i in range(len(res_df)-2)] + ['Test', 'Avg']
-    # res_df.index = ['F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','Avg']
-    res_df.index = index_vals
-    res_df.index.rename('Fold',inplace=True)
+    # Calculate the best F1 score and corresponding metrics
+    best_f1_index = results_df['F1'].idxmax()
+    best_metrics = results_df.loc[best_f1_index, ['Accuracy', 'F1', 'Precision', 'Recall']]
 
-    print(res_df)
+    # Add the best metrics to the DataFrame
+    results_df.loc['Best'] = best_metrics
+
+    index_vals = [f"F{i+1}" for i in range(len(results_df)-3)] + ['Test', 'Avg', 'Best']
+    results_df.index = index_vals
+    results_df.index.rename('Fold', inplace=True)
+
+    # index_vals = [f"F{i+1}" for i in range(len(res_df)-2)] + ['Test', 'Avg']
+    # # res_df.index = ['F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','Avg']
+    # res_df.index = index_vals
+    # res_df.index.rename('Fold',inplace=True)
+
+    print(results_df)
 
 
 #############
