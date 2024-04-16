@@ -122,14 +122,14 @@ def print_results(results):
     res_df = pd.DataFrame(results)
 
     avg = {'Accuracy':[np.mean(results['Accuracy'])],
-           'Kappa':[np.mean(results['Kappa'])],
+           'F1':[np.mean(results['F1'])],
            'Precision':[np.mean(results['Precision'])],
            'Recall':[np.mean(results['Recall'])]}
 
     Avg = pd.DataFrame(avg)
 
     res_df = pd.concat([res_df,Avg])
-    index_vals = [f"F{i+1}" for i in range(len(res_df)-1)] + ['Avg']
+    index_vals = [f"F{i+1}" for i in range(len(res_df)-2)] + ['Test', 'Avg']
     # res_df.index = ['F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','Avg']
     res_df.index = index_vals
     res_df.index.rename('Fold',inplace=True)
