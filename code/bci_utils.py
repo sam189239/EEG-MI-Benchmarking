@@ -97,12 +97,12 @@ def build_cnn2d_classifier(input_shape, num_layers=1):
     # First Convolutional Layer
     classifier.add(Conv2D(64, kernel_size=3, activation='relu', input_shape=input_shape))
     classifier.add(Conv2D(64, kernel_size=3, activation='relu'))
-    classifier.add(MaxPooling1D(pool_size=2))
+    classifier.add(MaxPooling2D(pool_size=2))
     
     # Intermediate Convolutional Layers
     for _ in range(num_layers):
         classifier.add(Conv2D(32, kernel_size=3, activation='relu'))
-        classifier.add(MaxPooling1D(pool_size=2))
+        classifier.add(MaxPooling2D(pool_size=2))
     
     # Flattening Layer
     classifier.add(Flatten())
