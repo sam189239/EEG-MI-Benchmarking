@@ -16,7 +16,7 @@ import pywt
 from mne.decoding import CSP # Common Spatial Pattern Filtering
 from sklearn.preprocessing import OneHotEncoder
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, Conv1D, MaxPooling1D, Flatten, Reshape, ConvLSTM1D
+from keras.layers import Dense, Dropout, Conv1D, MaxPooling1D, Flatten, Reshape, ConvLSTM1D, Conv2D
 from keras import regularizers
 from sklearn import preprocessing
 from sklearn.metrics import *
@@ -45,10 +45,11 @@ def feature_bands(x):
 
 ## MODELS
 
-def build_mlp_classifier(input_shape, num_layers = 1):
+def build_mlp_classifier(num_layers = 1):
     classifier = Sequential()
+    classifier.add(Flatten())
     #First Layer
-    classifier.add(Dense(units = 256, kernel_initializer = 'uniform', activation = 'relu', input_dim = input_shape, 
+    classifier.add(Dense(units = 256, kernel_initializer = 'uniform', activation = 'relu', 
                          kernel_regularizer=regularizers.l2(0.01))) # L2 regularization
     classifier.add(Dropout(0.5))
     # Intermediate Layers
@@ -90,6 +91,33 @@ def build_cnn_classifier(input_shape, num_layers=1):
     
     return classifier
 
+def build_cnn2d_classifier(input_shape, num_layers=1):
+    classifier = Sequential()
+    
+    # First Convolutional Layer
+    classifier.add(Conv2D(64, kernel_size=3, activation='relu', input_shape=input_shape))
+    classifier.add(Conv2D(64, kernel_size=3, activation='relu'))
+    classifier.add(MaxPooling1D(pool_size=2))
+    
+    # Intermediate Convolutional Layers
+    for _ in range(num_layers):
+        classifier.add(Conv2D(32, kernel_size=3, activation='relu'))
+        classifier.add(MaxPooling1D(pool_size=2))
+    
+    # Flattening Layer
+    classifier.add(Flatten())
+    
+    # Fully Connected Layers
+    classifier.add(Dense(units=128, activation='relu', kernel_regularizer=regularizers.l2(0.01)))
+    classifier.add(Dropout(0.5))
+    
+    # Output Layer
+    classifier.add(Dense(units=4, activation='softmax'))
+
+    # Compiling the model
+    classifier.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
+    
+    return classifier
 
 def build_convlstm_classifier(input_shape, num_layers=1):
     classifier = Sequential()
@@ -117,38 +145,81 @@ def build_convlstm_classifier(input_shape, num_layers=1):
     
     return classifier
 
-## RESULTS
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Dense, Activation, Permute, Dropout
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, AveragePooling2D
+from tensorflow.keras.layers import SeparableConv2D, DepthwiseConv2D
+from tensorflow.keras.layers import BatchNormalization
+from tensorflow.keras.layers import SpatialDropout2D
+from tensorflow.keras.regularizers import l1_l2
+from tensorflow.keras.layers import Input, Flatten
+from tensorflow.keras.constraints import max_norm
+from tensorflow.keras import backend as K
+
+def build_eegnet_classifier(nb_classes=4, Chans = 22, Samples = 751, 
+             dropoutRate = 0.3, kernLength = 64, F1 = 8, 
+             D = 2, F2 = 16, norm_rate = 0.25, dropoutType = 'Dropout'):
+    
+    if dropoutType == 'SpatialDropout2D':
+        dropoutType = SpatialDropout2D
+    elif dropoutType == 'Dropout':
+        dropoutType = Dropout
+    else:
+        raise ValueError('dropoutType must be one of SpatialDropout2D '
+                         'or Dropout, passed as a string.')
+    
+    input1   = Input(shape = (Chans, Samples, 1))
+
+    ##################################################################
+    block1       = Conv2D(F1, (1, kernLength), padding = 'same',
+                                   input_shape = (Chans, Samples, 1),
+                                   use_bias = False)(input1)
+    block1       = BatchNormalization()(block1)
+    block1       = DepthwiseConv2D((Chans, 1), use_bias = False, 
+                                   depth_multiplier = D,
+                                   depthwise_constraint = max_norm(1.))(block1)
+    block1       = BatchNormalization()(block1)
+    block1       = Activation('elu')(block1)
+    block1       = AveragePooling2D((1, 4))(block1)
+    block1       = dropoutType(dropoutRate)(block1)
+    
+    block2       = SeparableConv2D(F2, (1, 16),
+                                   use_bias = False, padding = 'same')(block1)
+    block2       = BatchNormalization()(block2)
+    block2       = Activation('elu')(block2)
+    block2       = AveragePooling2D((1, 8))(block2)
+    block2       = dropoutType(dropoutRate)(block2)
+        
+    flatten      = Flatten(name = 'flatten')(block2)
+    
+    dense        = Dense(nb_classes, name = 'dense', 
+                         kernel_constraint = max_norm(norm_rate))(flatten)
+    softmax      = Activation('softmax', name = 'softmax')(dense)
+    classifier = Model(inputs=input1, outputs=softmax)
+    classifier.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
+    return classifier
 
 def print_results(results):
     results_df = pd.DataFrame(results)
 
-    avg = {'Accuracy':[np.mean(results['Accuracy'])],
-           'F1':[np.mean(results['F1'])],
-           'Precision':[np.mean(results['Precision'])],
-           'Recall':[np.mean(results['Recall'])]}
+    avg = {
+        'Accuracy': [np.mean(results_df['Accuracy'])],
+        'F1': [np.mean(results_df['F1'])],
+        'Precision': [np.mean(results_df['Precision'])],
+        'Recall': [np.mean(results_df['Recall'])]
+    }
 
     Avg = pd.DataFrame(avg)
-    results_df = pd.concat([results_df, Avg])
-
-    # Calculate the best F1 score and corresponding metrics
+    res_df = pd.concat([results_df, Avg])
     best_f1_index = results_df['F1'].idxmax()
     best_metrics = results_df.loc[best_f1_index, ['Accuracy', 'F1', 'Precision', 'Recall']]
 
-    # Add the best metrics to the DataFrame
-    results_df.loc['Best'] = best_metrics
+    res_df.loc['Best'] = best_metrics
 
-    index_vals = [f"F{i+1}" for i in range(len(results_df)-3)] + ['Test', 'Avg', 'Best']
-    results_df.index = index_vals
-    results_df.index.rename('Fold', inplace=True)
-
-    # index_vals = [f"F{i+1}" for i in range(len(res_df)-2)] + ['Test', 'Avg']
-    # # res_df.index = ['F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','Avg']
-    # res_df.index = index_vals
-    # res_df.index.rename('Fold',inplace=True)
-
-    print(results_df)
-
-
+    index_vals = [f"F{i+1}" for i in range(len(res_df)-3)] + ['Test', 'Avg', 'Best']
+    res_df.index = index_vals
+    res_df.index.rename('Fold', inplace=True)
+    print(res_df)
 #############
 ## Archive ##
 #############
