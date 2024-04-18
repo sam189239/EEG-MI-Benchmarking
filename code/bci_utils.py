@@ -15,6 +15,7 @@ import scipy.io
 import pywt
 from mne.decoding import CSP # Common Spatial Pattern Filtering
 from sklearn.preprocessing import OneHotEncoder
+import keras
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Conv1D, MaxPooling1D, Flatten, Reshape, ConvLSTM1D, Conv2D
 from keras import regularizers
@@ -45,35 +46,34 @@ def feature_bands(x):
 
 ## MODELS
 
-def build_mlp_classifier(num_layers = 1):
+def build_mlp_classifier(num_layers = 1, lr = 0.01):
     classifier = Sequential()
     classifier.add(Flatten())
     #First Layer
     classifier.add(Dense(units = 256, kernel_initializer = 'uniform', activation = 'relu', 
                          kernel_regularizer=regularizers.l2(0.01))) # L2 regularization
-    classifier.add(Dropout(0.5))
+    classifier.add(Dropout(0.2))
     # Intermediate Layers
     for itr in range(num_layers):
         classifier.add(Dense(units = 128, kernel_initializer = 'uniform', activation = 'relu', 
                              kernel_regularizer=regularizers.l2(0.01))) # L2 regularization
-        classifier.add(Dropout(0.5))   
+        classifier.add(Dropout(0.2))   
     # Last Layer
     classifier.add(Dense(units = 4, kernel_initializer = 'uniform', activation = 'softmax'))
-    classifier.compile(optimizer = 'rmsprop' , loss = 'categorical_crossentropy', metrics = ['accuracy'])
+    classifier.compile(optimizer = keras.optimizers.Adam(lr=lr) , loss = 'categorical_crossentropy', metrics = ['accuracy'])
     return classifier
 
 
-def build_cnn_classifier(input_shape, num_layers=1):
+def build_cnn_classifier(input_shape, num_layers=1, lr = 0.01):
     classifier = Sequential()
     
     # First Convolutional Layer
     classifier.add(Conv1D(32, kernel_size=3, activation='relu', input_shape=input_shape))
-    classifier.add(Conv1D(32, kernel_size=3, activation='relu'))
     classifier.add(MaxPooling1D(pool_size=2))
     
     # Intermediate Convolutional Layers
     for _ in range(num_layers):
-        classifier.add(Conv1D(64, kernel_size=3, activation='relu'))
+        classifier.add(Conv1D(32, kernel_size=3, activation='relu'))
         classifier.add(MaxPooling1D(pool_size=2))
     
     # Flattening Layer
@@ -81,13 +81,13 @@ def build_cnn_classifier(input_shape, num_layers=1):
     
     # Fully Connected Layers
     classifier.add(Dense(units=128, activation='relu', kernel_regularizer=regularizers.l2(0.01)))
-    classifier.add(Dropout(0.5))
+    classifier.add(Dropout(0.3))
     
     # Output Layer
     classifier.add(Dense(units=4, activation='softmax'))
 
     # Compiling the model
-    classifier.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
+    classifier.compile(optimizer=keras.optimizers.Adam(lr=lr), loss='categorical_crossentropy', metrics=['accuracy'])
     
     return classifier
 
