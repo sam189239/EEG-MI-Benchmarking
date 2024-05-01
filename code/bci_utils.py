@@ -119,7 +119,7 @@ def build_cnn2d_classifier(input_shape, num_layers=1):
     
     return classifier
 
-def build_convlstm_classifier(input_shape, num_layers=1):
+def build_convlstm_classifier(input_shape, num_layers=1, lr=0.001):
     classifier = Sequential()
     
     # First ConvLSTM1D Layer
@@ -141,7 +141,7 @@ def build_convlstm_classifier(input_shape, num_layers=1):
     classifier.add(Dense(units=4, activation='softmax'))
 
     # Compiling the model
-    classifier.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
+    classifier.compile(optimizer=keras.optimizers.Adam(lr=lr), loss='categorical_crossentropy', metrics=['accuracy'])
     
     return classifier
 

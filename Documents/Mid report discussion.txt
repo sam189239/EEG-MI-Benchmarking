@@ -1,0 +1,23 @@
+Expectations for the mid report
+
+Current research ideas
+- Preprocessing options
+- Embedding options
+- Model options
+	- Published works
+	- General approaches to EEG classification
+- Robustness to noise and artificial data
+
+Current progress:
+- Literature survey
+- Collected current works on all this and
+made a specific list on available options
+for the benchmark and other research ideas
+- Looked into data and studied its structure
+
+Expectations for a benchmark analysis
+
+Replication of previous work results?
+Is it sufficient to study general approaches with 
+other embedding and preprocessing and just include
+results from the previous works directly?
