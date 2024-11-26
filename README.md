@@ -1,4 +1,4 @@
-# EEG Motor Movement/Imagery Signal Classification
+# EEG Motor Movement/Imagery Signal Classification: Benchmark
 
 This repository contains code and resources for the classification of EEG motor movement/imagery signals using various deep learning models. The project benchmarks the effectiveness and robustness of different models, specifically for the BCI Competition IV 2A dataset.
 [YouTube (Report/Demo)](https://youtu.be/-uwCrgJB880)
